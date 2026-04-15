@@ -28,6 +28,20 @@ const log = createLogger('server');
 // Import all tools
 import * as tools from './tools/index.js';
 
+// Write tool names (disabled when JIRA_READ_ONLY is true)
+const WRITE_TOOL_NAMES: Set<string> = new Set([
+  TOOL_NAMES.CREATE_ISSUE,
+  TOOL_NAMES.UPDATE_ISSUE,
+  TOOL_NAMES.ADD_COMMENT,
+  TOOL_NAMES.CREATE_SUBTASK,
+  TOOL_NAMES.CREATE_ISSUE_LINK,
+  TOOL_NAMES.ADD_ATTACHMENT,
+  TOOL_NAMES.DELETE_ATTACHMENT,
+  TOOL_NAMES.TRANSITION_ISSUE,
+]);
+
+const isReadOnly = (process.env.JIRA_READ_ONLY ?? 'true').toLowerCase() !== 'false';
+
 // Tool handler mapping
 const toolHandlers = new Map<string, (input: unknown) => Promise<any>>([
   [TOOL_NAMES.GET_VISIBLE_PROJECTS, tools.handleGetVisibleProjects],
@@ -80,6 +94,16 @@ const allTools = [
   tools.transitionIssueTool,
 ];
 
+// Filter out write tools when read-only mode is enabled
+if (isReadOnly) {
+  for (const name of WRITE_TOOL_NAMES) {
+    toolHandlers.delete(name);
+  }
+}
+const registeredTools = isReadOnly
+  ? allTools.filter((t) => !WRITE_TOOL_NAMES.has(t.name))
+  : allTools;
+
 async function main() {
   const isDryRun =
     (process.env.DRY_RUN || '').toLowerCase() === '1' ||
@@ -88,22 +112,30 @@ async function main() {
   // Show auth info on startup when configured (skip in DRY_RUN)
   if (!isDryRun) {
     const hasAuthVars = Boolean(
-      process.env.JIRA_BASE_URL && process.env.JIRA_EMAIL && process.env.JIRA_API_TOKEN
+      process.env.JIRA_BASE_URL && process.env.JIRA_API_TOKEN
     );
 
     if (hasAuthVars) {
       try {
         const auth = validateAuth();
-        console.error(`🔐 Authenticated as: ${auth.email}`);
+        const authMode = auth.email ? 'Cloud (Basic Auth)' : 'Data Center (Bearer token)';
+        console.error(`🔐 Auth mode: ${authMode}`);
+        if (auth.email) {
+          console.error(`🔐 Authenticated as: ${auth.email}`);
+        }
         console.error(`🌐 Jira instance: ${auth.baseUrl}`);
       } catch (error: any) {
         console.error('⚠️  Invalid Jira credentials:', error.message);
       }
     } else {
-      console.error('⚠️  Jira env vars missing (JIRA_BASE_URL, JIRA_EMAIL, JIRA_API_TOKEN)');
+      console.error('⚠️  Jira env vars missing (JIRA_BASE_URL, JIRA_API_TOKEN)');
     }
   } else {
     console.error('🧪 DRY_RUN=1 set — skipping Jira auth check');
+  }
+
+  if (isReadOnly) {
+    console.error('🔒 Read-only mode enabled (JIRA_READ_ONLY=true). Write tools are disabled.');
   }
 
   // Read version from package.json
@@ -130,8 +162,8 @@ async function main() {
 
   // List available tools
   server.setRequestHandler(ListToolsRequestSchema, async () => {
-    console.error(`📋 Listing ${allTools.length} available tool(s)`);
-    return { tools: allTools };
+    console.error(`📋 Listing ${registeredTools.length} available tool(s)`);
+    return { tools: registeredTools };
   });
 
   // Handle tool execution

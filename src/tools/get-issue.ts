@@ -47,20 +47,27 @@ export async function handleGetIssue(input: unknown): Promise<McpToolResponse> {
     const trimmedInput = (validated.issueKey || '').trim();
     const key = extractIssueKey(trimmedInput) || trimmedInput;
 
-    log.info(`Getting issue ${key}...`);
+    log.info(`Getting issue: key=${key}, raw input=${trimmedInput}`);
+    log.debug(`Validated input: ${JSON.stringify(validated)}`);
 
     const getParams: any = {};
 
     if (validated.expand !== undefined) getParams.expand = validated.expand;
     if (validated.fields !== undefined) getParams.fields = validated.fields;
 
+    log.debug(`Request params: ${JSON.stringify(getParams)}`);
+
     const issue = await getIssue(key, getParams);
 
-    log.info(`Retrieved issue ${issue.key}`);
+    log.info(`Retrieved issue ${issue.key} (status=${issue.fields?.status?.name})`);
 
     return formatIssueResponse(issue);
-  } catch (error) {
-    log.error('Error in handleGetIssue:', error);
+  } catch (error: any) {
+    log.error(`Error in handleGetIssue: ${error.message}`);
+    if (error.response) {
+      log.error(`Status: ${error.response.status}`);
+      log.error(`Response data: ${JSON.stringify(error.response.data)}`);
+    }
     return handleError(error);
   }
 }

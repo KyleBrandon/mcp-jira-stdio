@@ -20,17 +20,30 @@ A Model Context Protocol (MCP) server for Jira API integration. Enables reading,
 
 The fastest way to add this MCP server to Claude Code:
 
+**Atlassian Cloud:**
+
 ```bash
 claude mcp add jira npx mcp-jira-stdio@latest \
   --env JIRA_BASE_URL=https://yourcompany.atlassian.net \
   --env JIRA_EMAIL=your-email@example.com \
-  --env JIRA_API_TOKEN=your-api-token
+  --env JIRA_API_TOKEN=your-api-token \
+  --env JIRA_READ_ONLY=true
+```
+
+**Jira Data Center / Server:**
+
+```bash
+claude mcp add jira npx mcp-jira-stdio@latest \
+  --env JIRA_BASE_URL=https://jira.yourcompany.com \
+  --env JIRA_API_TOKEN=your-personal-access-token \
+  --env JIRA_READ_ONLY=true
 ```
 
 Replace the values with your actual Jira credentials:
 - **JIRA_BASE_URL**: Your Jira instance URL (e.g., `https://yourcompany.atlassian.net`)
-- **JIRA_EMAIL**: Your Jira account email
-- **JIRA_API_TOKEN**: Your Jira API token ([generate here](https://id.atlassian.com/manage-profile/security/api-tokens))
+- **JIRA_EMAIL**: Your Jira account email *(required for Cloud, omit for Data Center/Server)*
+- **JIRA_API_TOKEN**: API token ([Cloud](https://id.atlassian.com/manage-profile/security/api-tokens)) or Personal Access Token (Data Center/Server)
+- **JIRA_READ_ONLY**: Set to `false` to enable write operations (default: `true`)
 
 That's it! The server will be automatically configured and ready to use.
 
@@ -97,13 +110,22 @@ task env
 
 Example `.env` contents:
 
+**Atlassian Cloud:**
+
 ```env
 JIRA_BASE_URL=https://your-instance.atlassian.net
 JIRA_EMAIL=your-email@example.com
 JIRA_API_TOKEN=your-api-token
 ```
 
-**Note:** Generate your API token at [https://id.atlassian.com/manage-profile/security/api-tokens](https://id.atlassian.com/manage-profile/security/api-tokens)
+**Jira Data Center / Server:**
+
+```env
+JIRA_BASE_URL=https://jira.yourcompany.com
+JIRA_API_TOKEN=your-personal-access-token
+```
+
+**Note:** For Cloud, generate your API token at [https://id.atlassian.com/manage-profile/security/api-tokens](https://id.atlassian.com/manage-profile/security/api-tokens). For Data Center/Server, create a Personal Access Token from your Jira profile.
 
 ### 5. Test Connection
 
@@ -121,12 +143,39 @@ task jira:projects
 
 Use the quick install command (recommended):
 
+**Atlassian Cloud:**
+
 ```bash
 claude mcp add jira npx mcp-jira-stdio@latest \
   --env JIRA_BASE_URL=https://yourcompany.atlassian.net \
   --env JIRA_EMAIL=your-email@example.com \
-  --env JIRA_API_TOKEN=your-api-token
+  --env JIRA_API_TOKEN=your-api-token \
+  --env JIRA_READ_ONLY=true
 ```
+
+**Jira Data Center / Server:**
+
+```bash
+claude mcp add jira npx mcp-jira-stdio@latest \
+  --env JIRA_BASE_URL=https://jira.yourcompany.com \
+  --env JIRA_API_TOKEN=your-personal-access-token \
+  --env JIRA_READ_ONLY=true
+```
+
+#### For Claude Code (Development Install)
+
+If you have cloned the repo locally, use the provided install script. It reads credentials from your `.env` file, builds the project, and registers the MCP server with Claude Code in a single step:
+
+```bash
+cp .env.example .env
+# Edit .env with your credentials
+./install.sh
+```
+
+The script:
+- Reads `JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`, `JIRA_READ_ONLY`, and `LOG_LEVEL` from `.env`
+- Runs `npm run build`
+- Registers (or re-registers) the `jira` MCP server at user scope via `claude mcp add`
 
 #### For Claude Desktop
 
@@ -348,6 +397,7 @@ claude mcp add jira mcp-jira-stdio \
   --env JIRA_BASE_URL=... \
   --env JIRA_EMAIL=... \
   --env JIRA_API_TOKEN=...
+# Omit JIRA_EMAIL for Data Center/Server (Bearer token auth)
 ```
 
 ### Debug Commands
@@ -377,12 +427,14 @@ npm run inspector
 
 ## 🔍 Environment Variables
 
-| Variable         | Required | Description       | Example                         |
-| ---------------- | -------- | ----------------- | ------------------------------- |
-| `JIRA_BASE_URL`  | Yes      | Jira instance URL | `https://company.atlassian.net` |
-| `JIRA_EMAIL`     | Yes      | Your Jira email   | `user@example.com`              |
-| `JIRA_API_TOKEN` | Yes      | Jira API token    | `ATxxx...`                      |
-| `NODE_ENV`       | No       | Environment mode  | `development` or `production`   |
+| Variable         | Required | Default        | Description                                                                                             | Example                         |
+| ---------------- | -------- | -------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| `JIRA_BASE_URL`  | Yes        | —              | Jira instance URL (no trailing slash)                                                                                      | `https://company.atlassian.net` |
+| `JIRA_EMAIL`     | Cloud only | —              | Jira account email. When set, enables Basic Auth (Cloud). Omit for Data Center/Server (Bearer token).                      | `user@example.com`              |
+| `JIRA_API_TOKEN` | Yes        | —              | API token ([Cloud](https://id.atlassian.com/manage-profile/security/api-tokens)) or Personal Access Token (Data Center)    | `ATxxx...`                      |
+| `JIRA_READ_ONLY` | No       | `true`         | When `true`, write tools (create, update, delete, comment, transition) are hidden from the MCP tool list | `true` or `false`               |
+| `NODE_ENV`       | No       | `production`   | Set to `development` to enable connection testing and debug messages                                     | `development` or `production`   |
+| `LOG_LEVEL`      | No       | `info`         | Log verbosity (`debug` in development mode)                                                             | `debug`, `info`, `warn`         |
 
 ## 🤝 Contributing
 
