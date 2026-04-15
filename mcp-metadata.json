@@ -29,7 +29,7 @@
         "JIRA_EMAIL": {
           "type": "string",
           "format": "email",
-          "description": "Jira account email"
+          "description": "Jira account email (required for Atlassian Cloud, omit for Data Center/Server)"
         },
         "JIRA_API_TOKEN": {
           "type": "string",
@@ -37,9 +37,9 @@
           "description": "Jira API token"
         }
       },
-      "required": ["JIRA_BASE_URL", "JIRA_EMAIL", "JIRA_API_TOKEN"],
+      "required": ["JIRA_BASE_URL", "JIRA_API_TOKEN"],
       "additionalProperties": false
     },
-    "placeholderArguments": ["JIRA_BASE_URL", "JIRA_EMAIL", "JIRA_API_TOKEN"]
+    "placeholderArguments": ["JIRA_BASE_URL", "JIRA_API_TOKEN"]
   }
 }

@@ -231,6 +231,12 @@ const toolRegistry: ToolEntry[] = [
   },
 ];
 
+// In read-only mode (the default), expose only tools annotated as read-only.
+const isReadOnly = (process.env.JIRA_READ_ONLY ?? 'true').toLowerCase() !== 'false';
+const registeredTools = isReadOnly
+  ? toolRegistry.filter((entry) => entry.annotations.readOnlyHint === true)
+  : toolRegistry;
+
 async function main() {
   const isDryRun =
     (process.env.DRY_RUN || '').toLowerCase() === '1' ||
@@ -239,22 +245,30 @@ async function main() {
   // Show auth info on startup when configured (skip in DRY_RUN)
   if (!isDryRun) {
     const hasAuthVars = Boolean(
-      process.env.JIRA_BASE_URL && process.env.JIRA_EMAIL && process.env.JIRA_API_TOKEN
+      process.env.JIRA_BASE_URL && process.env.JIRA_API_TOKEN
     );
 
     if (hasAuthVars) {
       try {
         const auth = validateAuth();
-        console.error(`🔐 Authenticated as: ${auth.email}`);
+        const authMode = auth.email ? 'Cloud (Basic Auth)' : 'Data Center (Bearer token)';
+        console.error(`🔐 Auth mode: ${authMode}`);
+        if (auth.email) {
+          console.error(`🔐 Authenticated as: ${auth.email}`);
+        }
         console.error(`🌐 Jira instance: ${auth.baseUrl}`);
       } catch (error: any) {
         console.error('⚠️  Invalid Jira credentials:', error.message);
       }
     } else {
-      console.error('⚠️  Jira env vars missing (JIRA_BASE_URL, JIRA_EMAIL, JIRA_API_TOKEN)');
+      console.error('⚠️  Jira env vars missing (JIRA_BASE_URL, JIRA_API_TOKEN)');
     }
   } else {
     console.error('🧪 DRY_RUN=1 set — skipping Jira auth check');
+  }
+
+  if (isReadOnly) {
+    console.error('🔒 Read-only mode enabled (JIRA_READ_ONLY=true). Write tools are disabled.');
   }
 
   // Read version from package.json
@@ -278,8 +292,8 @@ async function main() {
     }
   );
 
-  // Register all tools from the registry
-  for (const entry of toolRegistry) {
+  // Register all tools from the registry (respecting read-only filtering)
+  for (const entry of registeredTools) {
     server.registerTool(
       entry.name,
       {
@@ -301,7 +315,7 @@ async function main() {
     );
   }
 
-  console.error(`📋 Registered ${toolRegistry.length} tool(s)`);
+  console.error(`📋 Registered ${registeredTools.length} tool(s)`);
 
   const transport = new StdioServerTransport();
   await server.connect(transport);

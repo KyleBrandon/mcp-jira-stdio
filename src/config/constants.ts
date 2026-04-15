@@ -12,8 +12,9 @@ export const JIRA_CONFIG = {
 
 export const ERROR_MESSAGES = {
   AUTH_REQUIRED:
-    'Jira authentication required. Set JIRA_BASE_URL, JIRA_EMAIL, and JIRA_API_TOKEN environment variables.',
-  INVALID_CREDENTIALS: 'Invalid Jira credentials. Please check your email and API token.',
+    'Jira authentication required. Set JIRA_BASE_URL and JIRA_API_TOKEN environment variables. For Atlassian Cloud, also set JIRA_EMAIL.',
+  INVALID_CREDENTIALS:
+    'Invalid Jira credentials. Please check your API token. For Atlassian Cloud, verify JIRA_EMAIL is correct.',
   PROJECT_NOT_FOUND: "Project not found or you don't have permission to access it.",
   ISSUE_NOT_FOUND: "Issue not found or you don't have permission to access it.",
   RATE_LIMIT_EXCEEDED: 'Jira API rate limit exceeded. Please wait and try again.',

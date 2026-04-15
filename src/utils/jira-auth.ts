@@ -9,12 +9,21 @@ let jiraClient: AxiosInstance | null = null;
 let jiraMultipartClient: AxiosInstance | null = null;
 const log = createLogger('jira-auth');
 
+function buildAuthHeader(auth: JiraAuthConfig): string {
+  if (auth.email) {
+    // Atlassian Cloud: Basic Auth with email:apiToken
+    return `Basic ${Buffer.from(`${auth.email}:${auth.apiToken}`).toString('base64')}`;
+  }
+  // Jira Data Center/Server: Bearer token (PAT)
+  return `Bearer ${auth.apiToken}`;
+}
+
 export function validateAuth(): JiraAuthConfig {
   const baseUrl = process.env.JIRA_BASE_URL;
   const email = process.env.JIRA_EMAIL;
   const apiToken = process.env.JIRA_API_TOKEN;
 
-  if (!baseUrl || !email || !apiToken) {
+  if (!baseUrl || !apiToken) {
     throw new Error(ERROR_MESSAGES.AUTH_REQUIRED);
   }
 
@@ -23,7 +32,7 @@ export function validateAuth(): JiraAuthConfig {
 
   return {
     baseUrl: normalizedBaseUrl,
-    email,
+    ...(email ? { email } : {}),
     apiToken,
   };
 }
@@ -41,10 +50,7 @@ export function getAuthenticatedClient(): AxiosInstance {
     headers: {
       Accept: 'application/json',
       'Content-Type': 'application/json',
-    },
-    auth: {
-      username: auth.email,
-      password: auth.apiToken,
+      Authorization: buildAuthHeader(auth),
     },
   });
 
@@ -52,6 +58,12 @@ export function getAuthenticatedClient(): AxiosInstance {
   jiraClient.interceptors.request.use(
     (config) => {
       log.debug(`Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
+      if (config.params && Object.keys(config.params).length > 0) {
+        log.debug(`Request params: ${JSON.stringify(config.params)}`);
+      }
+      if (config.data) {
+        log.debug(`Request body: ${JSON.stringify(config.data)}`);
+      }
       return config;
     },
     (error) => {
@@ -68,6 +80,16 @@ export function getAuthenticatedClient(): AxiosInstance {
     },
     (error) => {
       log.error(`Jira API error: ${error.response?.status} ${error.config?.url}`);
+      if (error.response) {
+        log.error(`Response headers: ${JSON.stringify(error.response.headers)}`);
+        log.error(`Response body: ${JSON.stringify(error.response.data)}`);
+      }
+      if (error.code) {
+        log.error(`Error code: ${error.code}`);
+      }
+      if (error.message) {
+        log.error(`Error message: ${error.message}`);
+      }
 
       if (error.response?.status === 401) {
         throw new Error(ERROR_MESSAGES.INVALID_CREDENTIALS);
@@ -96,12 +118,23 @@ export async function makeJiraRequest<T = any>(
   const client = getAuthenticatedClient();
   let lastError: any;
 
+  log.debug(`makeJiraRequest: ${config.method?.toUpperCase() || 'GET'} ${config.url}`);
+  if (config.params) {
+    log.debug(`makeJiraRequest params: ${JSON.stringify(config.params)}`);
+  }
+
   for (let attempt = 0; attempt <= retryConfig.maxRetries; attempt++) {
     try {
       const response = await client.request<T>(config);
       return response.data;
     } catch (error: any) {
       lastError = error;
+      log.error(
+        `makeJiraRequest failed (attempt ${attempt + 1}/${retryConfig.maxRetries + 1}): ` +
+          `status=${error.response?.status || 'N/A'}, ` +
+          `url=${config.url}, ` +
+          `message=${error.message}`
+      );
 
       // Don't retry on authentication or client errors
       if (
@@ -172,10 +205,7 @@ export function getMultipartClient(): AxiosInstance {
     headers: {
       Accept: 'application/json',
       'X-Atlassian-Token': 'no-check',
-    },
-    auth: {
-      username: auth.email,
-      password: auth.apiToken,
+      Authorization: buildAuthHeader(auth),
     },
   });
 

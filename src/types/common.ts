@@ -2,7 +2,7 @@ import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 
 export interface JiraAuthConfig {
   baseUrl: string;
-  email: string;
+  email?: string;
   apiToken: string;
 }
 

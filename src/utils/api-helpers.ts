@@ -1,6 +1,7 @@
 import { AxiosRequestConfig } from 'axios';
 import FormData from 'form-data';
 import { makeJiraRequest, makeMultipartRequest } from './jira-auth.js';
+import { createLogger } from './logger.js';
 import {
   JiraProject,
   JiraIssue,
@@ -21,6 +22,8 @@ import {
 import { PaginatedResponse } from '../types/common.js';
 import { sanitizeJQL } from './validators.js';
 import mdToAdf from 'md-to-adf';
+
+const log = createLogger('api-helpers');
 
 // Convert a description into Atlassian Document Format (ADF) based on the specified format.
 // Supports three formats:
@@ -257,6 +260,8 @@ export async function getIssue(
     url: `/issue/${issueKey}`,
     params,
   };
+
+  log.debug(`getIssue: key=${issueKey}, params=${JSON.stringify(params)}`);
 
   return await makeJiraRequest<JiraIssue>(config);
 }
