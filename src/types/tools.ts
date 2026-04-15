@@ -30,8 +30,13 @@ export const SearchIssuesInputSchema = z.object({
     .string()
     .optional()
     .describe(
-      'Token for pagination. Omit for first page, use value from previous response for next page.'
+      'Token for pagination (Cloud only). Omit for first page, use value from previous response for next page.'
     ),
+  startAt: z
+    .number()
+    .min(0)
+    .optional()
+    .describe('Start index for offset pagination (Data Center only).'),
   maxResults: z
     .number()
     .min(1)
@@ -120,8 +125,13 @@ export const GetMyIssuesInputSchema = z.object({
     .string()
     .optional()
     .describe(
-      'Token for pagination. Omit for first page, use value from previous response for next page.'
+      'Token for pagination (Cloud only). Omit for first page, use value from previous response for next page.'
     ),
+  startAt: z
+    .number()
+    .min(0)
+    .optional()
+    .describe('Start index for offset pagination (Data Center only).'),
   maxResults: z
     .number()
     .min(1)

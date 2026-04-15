@@ -20,7 +20,12 @@ export const getMyIssuesTool: Tool = {
       nextPageToken: {
         type: 'string',
         description:
-          'Token for pagination. Omit for first page, use value from previous response for next page.',
+          'Token for pagination (Cloud only). Omit for first page, use value from previous response for next page.',
+      },
+      startAt: {
+        type: 'number',
+        description: 'Start index for offset pagination (Data Center only).',
+        minimum: 0,
       },
       maxResults: {
         type: 'number',
@@ -54,6 +59,7 @@ export async function handleGetMyIssues(input: unknown): Promise<McpToolResponse
     const getParams: any = {};
 
     if (validated.nextPageToken !== undefined) getParams.nextPageToken = validated.nextPageToken;
+    if (validated.startAt !== undefined) getParams.startAt = validated.startAt;
     if (validated.maxResults !== undefined) getParams.maxResults = validated.maxResults;
     if (validated.fields !== undefined) getParams.fields = validated.fields;
     if (validated.expand !== undefined) getParams.expand = validated.expand;

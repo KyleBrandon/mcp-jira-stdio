@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import FormData from 'form-data';
 import { JiraAuthConfig, RetryConfig } from '../types/common.js';
-import { JIRA_CONFIG, ERROR_MESSAGES } from '../config/constants.js';
+import { JIRA_CONFIG, ERROR_MESSAGES, getBasePath } from '../config/constants.js';
 import { createLogger } from './logger.js';
 // keep client simple to match test expectations
 
@@ -45,7 +45,7 @@ export function getAuthenticatedClient(): AxiosInstance {
   const auth = validateAuth();
 
   jiraClient = axios.create({
-    baseURL: `${auth.baseUrl}${JIRA_CONFIG.BASE_PATH}`,
+    baseURL: `${auth.baseUrl}${getBasePath()}`,
     timeout: JIRA_CONFIG.DEFAULT_TIMEOUT,
     headers: {
       Accept: 'application/json',
@@ -200,7 +200,7 @@ export function getMultipartClient(): AxiosInstance {
   const auth = validateAuth();
 
   jiraMultipartClient = axios.create({
-    baseURL: `${auth.baseUrl}${JIRA_CONFIG.BASE_PATH}`,
+    baseURL: `${auth.baseUrl}${getBasePath()}`,
     timeout: JIRA_CONFIG.DEFAULT_TIMEOUT,
     headers: {
       Accept: 'application/json',

@@ -251,8 +251,9 @@ async function main() {
     if (hasAuthVars) {
       try {
         const auth = validateAuth();
+        const apiVersion = auth.email ? 'v3' : 'v2';
         const authMode = auth.email ? 'Cloud (Basic Auth)' : 'Data Center (Bearer token)';
-        console.error(`🔐 Auth mode: ${authMode}`);
+        console.error(`🔐 Auth mode: ${authMode} | API: ${apiVersion}`);
         if (auth.email) {
           console.error(`🔐 Authenticated as: ${auth.email}`);
         }

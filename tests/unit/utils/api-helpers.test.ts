@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { makeJiraRequest, makeMultipartRequest } from '../../../src/utils/jira-auth.js';
+import { _resetPlatform } from '../../../src/config/constants.js';
 import {
   getVisibleProjects,
   getIssue,
@@ -47,6 +48,7 @@ const mockedMakeMultipartRequest = vi.mocked(makeMultipartRequest);
 describe('api-helpers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    _resetPlatform();
   });
 
   describe('getVisibleProjects', () => {
@@ -1289,6 +1291,152 @@ describe('api-helpers', () => {
         method: 'DELETE',
         url: '/attachment/very-long-attachment-id-12345678',
       });
+    });
+  });
+
+  describe('Data Center mode (Bearer auth / API v2)', () => {
+    beforeEach(() => {
+      delete process.env.JIRA_EMAIL;
+      _resetPlatform();
+    });
+
+    afterEach(() => {
+      process.env.JIRA_EMAIL = 'test@example.com';
+      _resetPlatform();
+    });
+
+    it('should use /project endpoint for getVisibleProjects', async () => {
+      mockedMakeJiraRequest.mockResolvedValue([mockJiraProject]);
+
+      const result = await getVisibleProjects();
+
+      expect(mockedMakeJiraRequest).toHaveBeenCalledWith({
+        method: 'GET',
+        url: '/project',
+        params: {},
+      });
+      expect(result).toEqual([mockJiraProject]);
+    });
+
+    it('should use /search endpoint for searchIssues', async () => {
+      mockedMakeJiraRequest.mockResolvedValue(mockJiraSearchResult);
+
+      const result = await searchIssues({ jql: 'project = TEST' });
+
+      expect(mockedMakeJiraRequest).toHaveBeenCalledWith({
+        method: 'POST',
+        url: '/search',
+        data: {
+          jql: 'project = TEST',
+          maxResults: 50,
+        },
+      });
+      expect(result).toEqual(mockJiraSearchResult);
+    });
+
+    it('should use startAt for search pagination', async () => {
+      mockedMakeJiraRequest.mockResolvedValue(mockJiraSearchResult);
+
+      await searchIssues({ jql: 'project = TEST', startAt: 50, maxResults: 25 });
+
+      expect(mockedMakeJiraRequest).toHaveBeenCalledWith({
+        method: 'POST',
+        url: '/search',
+        data: {
+          jql: 'project = TEST',
+          startAt: 50,
+          maxResults: 25,
+        },
+      });
+    });
+
+    it('should use /search endpoint for getMyIssues', async () => {
+      mockedMakeJiraRequest.mockResolvedValue(mockJiraSearchResult);
+
+      await getMyIssues({ startAt: 10 });
+
+      expect(mockedMakeJiraRequest).toHaveBeenCalledWith({
+        method: 'POST',
+        url: '/search',
+        data: {
+          jql: 'assignee = currentUser() ORDER BY updated DESC',
+          startAt: 10,
+          maxResults: 50,
+        },
+      });
+    });
+
+    it('should use { name } for assignee in createIssue', async () => {
+      mockedMakeJiraRequest
+        .mockResolvedValueOnce(mockJiraCreateIssueResponse)
+        .mockResolvedValueOnce(mockJiraIssue);
+
+      await createIssue({
+        projectKey: 'TEST',
+        summary: 'DC issue',
+        issueType: 'Bug',
+        assignee: 'jsmith',
+      });
+
+      const firstCall = mockedMakeJiraRequest.mock.calls[0][0];
+      expect(firstCall.data.fields.assignee).toEqual({ name: 'jsmith' });
+    });
+
+    it('should use plain text description in createIssue', async () => {
+      mockedMakeJiraRequest
+        .mockResolvedValueOnce(mockJiraCreateIssueResponse)
+        .mockResolvedValueOnce(mockJiraIssue);
+
+      await createIssue({
+        projectKey: 'TEST',
+        summary: 'DC issue',
+        description: 'Plain text description',
+        issueType: 'Bug',
+      });
+
+      const firstCall = mockedMakeJiraRequest.mock.calls[0][0];
+      expect(firstCall.data.fields.description).toBe('Plain text description');
+    });
+
+    it('should use { name } for assignee in updateIssue', async () => {
+      mockedMakeJiraRequest.mockResolvedValue(undefined);
+
+      await updateIssue('TEST-123', { assignee: 'jsmith' });
+
+      expect(mockedMakeJiraRequest).toHaveBeenCalledWith({
+        method: 'PUT',
+        url: '/issue/TEST-123',
+        data: {
+          fields: {
+            assignee: { name: 'jsmith' },
+          },
+        },
+      });
+    });
+
+    it('should use plain text body in addComment', async () => {
+      mockedMakeJiraRequest.mockResolvedValue(mockJiraComment);
+
+      await addComment('TEST-123', 'A plain comment');
+
+      const call = mockedMakeJiraRequest.mock.calls[0][0];
+      expect(call.data.body).toBe('A plain comment');
+    });
+
+    it('should use { name } for assignee in createSubtask', async () => {
+      mockedMakeJiraRequest
+        .mockResolvedValueOnce(mockJiraIssue) // getIssue for parent
+        .mockResolvedValueOnce([mockJiraSubtaskIssueType]) // getIssueTypes
+        .mockResolvedValueOnce(mockJiraCreateIssueResponse) // createIssue
+        .mockResolvedValueOnce(mockJiraIssue); // getIssue for created subtask
+
+      await createSubtask('TEST-123', {
+        summary: 'DC subtask',
+        assignee: 'jsmith',
+      });
+
+      const thirdCall = mockedMakeJiraRequest.mock.calls[2][0];
+      expect(thirdCall.data.fields.assignee).toEqual({ name: 'jsmith' });
     });
   });
 });

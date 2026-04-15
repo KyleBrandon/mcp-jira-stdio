@@ -1,6 +1,7 @@
 import { AxiosRequestConfig } from 'axios';
 import FormData from 'form-data';
 import { makeJiraRequest, makeMultipartRequest } from './jira-auth.js';
+import { isCloud } from '../config/constants.js';
 import { createLogger } from './logger.js';
 import {
   JiraProject,
@@ -197,21 +198,64 @@ function ensureAdfDescription(desc: any, format: 'markdown' | 'adf' | 'plain' = 
   return { type: 'doc', version: 1, content };
 }
 
+// Wrapper: returns ADF for Cloud (v3), plain text for Data Center (v2)
+function formatDescription(
+  desc: any,
+  format: 'markdown' | 'adf' | 'plain' = 'markdown'
+): any {
+  if (!desc) return desc;
+
+  if (!isCloud()) {
+    // v2: plain text strings
+    if (typeof desc === 'string') return desc;
+    return desc;
+  }
+
+  // v3: ADF format
+  return ensureAdfDescription(desc, format);
+}
+
+// Returns the correct assignee shape for the platform
+function formatAssignee(identifier: string): Record<string, string> {
+  return isCloud() ? { accountId: identifier } : { name: identifier };
+}
+
 export async function getVisibleProjects(
   options: {
     expand?: string[];
     recent?: number;
   } = {}
 ): Promise<JiraProject[]> {
+  if (!isCloud()) {
+    // Data Center (v2): GET /project returns all projects
+    const params: Record<string, any> = {};
+
+    if (options.expand) {
+      params.expand = options.expand.join(',');
+    }
+
+    if (options.recent) {
+      params.recent = options.recent;
+    }
+
+    const config: AxiosRequestConfig = {
+      method: 'GET',
+      url: '/project',
+      params,
+    };
+
+    return await makeJiraRequest<JiraProject[]>(config);
+  }
+
+  // Cloud (v3): GET /project/search with pagination
   const allProjects: JiraProject[] = [];
   let startAt = 0;
-  let isLast = false;
+  let isLastPage = false;
 
-  // Fetch all pages of projects
-  while (!isLast) {
+  while (!isLastPage) {
     const params: Record<string, any> = {
       startAt,
-      maxResults: 50, // Jira default, fetch 50 projects per page
+      maxResults: 50,
     };
 
     if (options.expand) {
@@ -231,7 +275,7 @@ export async function getVisibleProjects(
     const response = await makeJiraRequest<PaginatedResponse<JiraProject>>(config);
 
     allProjects.push(...response.values);
-    isLast = response.isLast;
+    isLastPage = response.isLast;
     startAt += response.maxResults;
   }
 
@@ -268,41 +312,68 @@ export async function getIssue(
 
 export async function searchIssues(options: {
   jql: string;
-  nextPageToken?: string;
+  nextPageToken?: string; // Cloud (v3) only
+  startAt?: number; // Data Center (v2) only
   maxResults?: number;
   fields?: string[];
   expand?: string[];
 }): Promise<JiraSearchResult> {
-  const { jql, nextPageToken, maxResults = 50 } = options;
+  const sanitizedJql = sanitizeJQL(options.jql);
+  const maxResults = options.maxResults ?? 50;
 
-  // Sanitize JQL
-  const sanitizedJql = sanitizeJQL(jql);
+  if (isCloud()) {
+    // Cloud (v3): POST /search/jql with cursor pagination
+    const data: Record<string, any> = {
+      jql: sanitizedJql,
+      maxResults,
+    };
 
-  const data: Record<string, any> = {
-    jql: sanitizedJql,
-    maxResults,
-  };
+    if (options.nextPageToken) {
+      data.nextPageToken = options.nextPageToken;
+    }
 
-  if (nextPageToken) {
-    data.nextPageToken = nextPageToken;
+    if (options.fields) {
+      data.fields = options.fields;
+    }
+
+    if (options.expand && options.expand.length > 0) {
+      data.expand = options.expand.join(',');
+    }
+
+    const config: AxiosRequestConfig = {
+      method: 'POST',
+      url: '/search/jql',
+      data,
+    };
+
+    return await makeJiraRequest<JiraSearchResult>(config);
+  } else {
+    // Data Center (v2): POST /search with offset pagination
+    const data: Record<string, any> = {
+      jql: sanitizedJql,
+      maxResults,
+    };
+
+    if (options.startAt !== undefined) {
+      data.startAt = options.startAt;
+    }
+
+    if (options.fields) {
+      data.fields = options.fields;
+    }
+
+    if (options.expand && options.expand.length > 0) {
+      data.expand = options.expand.join(',');
+    }
+
+    const config: AxiosRequestConfig = {
+      method: 'POST',
+      url: '/search',
+      data,
+    };
+
+    return await makeJiraRequest<JiraSearchResult>(config);
   }
-
-  if (options.fields) {
-    data.fields = options.fields;
-  }
-
-  if (options.expand && options.expand.length > 0) {
-    // Jira API expects expand as comma-separated string for POST /search/jql
-    data.expand = options.expand.join(',');
-  }
-
-  const config: AxiosRequestConfig = {
-    method: 'POST',
-    url: '/search/jql',
-    data,
-  };
-
-  return await makeJiraRequest<JiraSearchResult>(config);
 }
 
 export async function createIssue(
@@ -327,7 +398,7 @@ export async function createIssue(
   };
 
   if (issueData.description !== undefined) {
-    fields.description = ensureAdfDescription(
+    fields.description = formatDescription(
       issueData.description,
       issueData.format || 'markdown'
     );
@@ -338,7 +409,7 @@ export async function createIssue(
   }
 
   if (issueData.assignee) {
-    fields.assignee = { accountId: issueData.assignee };
+    fields.assignee = formatAssignee(issueData.assignee);
   }
 
   if (issueData.labels && issueData.labels.length > 0) {
@@ -395,7 +466,7 @@ export async function updateIssue(
   }
 
   if (updates.description !== undefined) {
-    fields.description = ensureAdfDescription(updates.description, updates.format || 'markdown');
+    fields.description = formatDescription(updates.description, updates.format || 'markdown');
   }
 
   if (updates.priority !== undefined) {
@@ -403,7 +474,7 @@ export async function updateIssue(
   }
 
   if (updates.assignee !== undefined) {
-    fields.assignee = updates.assignee ? { accountId: updates.assignee } : null;
+    fields.assignee = updates.assignee ? formatAssignee(updates.assignee) : null;
   }
 
   if (updates.labels !== undefined) {
@@ -439,6 +510,7 @@ export async function getCurrentUser(): Promise<JiraUser> {
 export async function getMyIssues(
   options: {
     nextPageToken?: string;
+    startAt?: number;
     maxResults?: number;
     fields?: string[];
     expand?: string[];
@@ -452,6 +524,7 @@ export async function getMyIssues(
   };
 
   if (options.nextPageToken !== undefined) searchParams.nextPageToken = options.nextPageToken;
+  if (options.startAt !== undefined) searchParams.startAt = options.startAt;
   if (options.fields !== undefined) searchParams.fields = options.fields;
   if (options.expand !== undefined) searchParams.expand = options.expand;
 
@@ -563,11 +636,11 @@ export async function addComment(
   visibility?: { type: string; value: string },
   format?: 'markdown' | 'adf' | 'plain'
 ): Promise<JiraComment> {
-  // Convert body to ADF format (Jira expects ADF for comments)
-  const adfBody = ensureAdfDescription(body, format || 'markdown');
+  // Convert body to appropriate format (ADF for Cloud, plain text for Data Center)
+  const formattedBody = formatDescription(body, format || 'markdown');
 
   const data: any = {
-    body: adfBody,
+    body: formattedBody,
   };
 
   if (visibility) {
@@ -665,7 +738,7 @@ export async function createSubtask(
   };
 
   if (subtaskData.description !== undefined) {
-    fields.description = ensureAdfDescription(
+    fields.description = formatDescription(
       subtaskData.description,
       subtaskData.format || 'markdown'
     );
@@ -676,7 +749,7 @@ export async function createSubtask(
   }
 
   if (subtaskData.assignee) {
-    fields.assignee = { accountId: subtaskData.assignee };
+    fields.assignee = formatAssignee(subtaskData.assignee);
   }
 
   if (subtaskData.labels && subtaskData.labels.length > 0) {
@@ -910,12 +983,12 @@ export async function transitionIssue(
   }
 
   if (options.comment) {
-    const adfBody = ensureAdfDescription(options.comment, options.format || 'markdown');
+    const formattedBody = formatDescription(options.comment, options.format || 'markdown');
     data.update = {
       comment: [
         {
           add: {
-            body: adfBody,
+            body: formattedBody,
           },
         },
       ],

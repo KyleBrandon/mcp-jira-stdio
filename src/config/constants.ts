@@ -1,6 +1,27 @@
+export type JiraPlatform = 'cloud' | 'datacenter';
+
+let _resolvedPlatform: JiraPlatform | null = null;
+
+export function getJiraPlatform(): JiraPlatform {
+  if (_resolvedPlatform) return _resolvedPlatform;
+  _resolvedPlatform = process.env.JIRA_EMAIL ? 'cloud' : 'datacenter';
+  return _resolvedPlatform;
+}
+
+export function isCloud(): boolean {
+  return getJiraPlatform() === 'cloud';
+}
+
+export function getBasePath(): string {
+  return isCloud() ? '/rest/api/3' : '/rest/api/2';
+}
+
+/** @internal Test-only: reset cached platform */
+export function _resetPlatform(): void {
+  _resolvedPlatform = null;
+}
+
 export const JIRA_CONFIG = {
-  API_VERSION: '3',
-  BASE_PATH: '/rest/api/3',
   DEFAULT_TIMEOUT: 30000,
   MAX_RETRIES: 3,
   RETRY_DELAY: 1000,

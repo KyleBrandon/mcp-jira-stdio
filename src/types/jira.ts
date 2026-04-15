@@ -84,13 +84,15 @@ export interface JiraPriority {
 }
 
 export interface JiraUser {
-  accountId: string;
+  accountId?: string; // Cloud (v3)
+  name?: string; // Data Center (v2)
+  key?: string; // Data Center (v2)
   emailAddress?: string;
   displayName: string;
   active: boolean;
   timeZone?: string;
-  accountType: string;
-  avatarUrls: {
+  accountType?: string; // Not present in Data Center
+  avatarUrls?: {
     '48x48': string;
     '24x24': string;
     '16x16': string;

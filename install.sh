@@ -7,7 +7,7 @@ ENV_FILE="$SCRIPT_DIR/.env"
 # Load credentials from .env if it exists
 if [ -f "$ENV_FILE" ]; then
   JIRA_BASE_URL="$(grep -E '^JIRA_BASE_URL=' "$ENV_FILE" | cut -d= -f2-)"
-  JIRA_EMAIL="$(grep -E '^JIRA_EMAIL=' "$ENV_FILE" | cut -d= -f2-)"
+  JIRA_EMAIL="$(grep -E '^JIRA_EMAIL=' "$ENV_FILE" | cut -d= -f2- || echo "")"
   JIRA_API_TOKEN="$(grep -E '^JIRA_API_TOKEN=' "$ENV_FILE" | cut -d= -f2-)"
   JIRA_READ_ONLY="$(grep -E '^JIRA_READ_ONLY=' "$ENV_FILE" | cut -d= -f2- || echo "true")"
   LOG_LEVEL="$(grep -E '^LOG_LEVEL=' "$ENV_FILE" | cut -d= -f2- || echo "debug")"

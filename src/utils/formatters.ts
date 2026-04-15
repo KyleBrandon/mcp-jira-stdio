@@ -35,7 +35,7 @@ export function formatProjectsResponse(projects: JiraProject[]): McpToolResponse
   };
 }
 
-function adfToPlainText(adf: any): string {
+export function adfToPlainText(adf: any): string {
   // Very lightweight ADF to text conversion (best-effort)
   try {
     const walk = (node: any): string => {
@@ -76,11 +76,11 @@ export function formatIssueResponse(issue: JiraIssue): McpToolResponse {
   const summary = fields?.summary || 'No summary';
 
   const assigneeText = fields?.assignee
-    ? `${fields.assignee.displayName} (${maybeRedactAccountId(fields.assignee.accountId)})`
+    ? `${fields.assignee.displayName} (${maybeRedactAccountId(fields.assignee.accountId || fields.assignee.name || 'unknown')})`
     : 'Unassigned';
 
   const reporterText = fields?.reporter
-    ? `${fields.reporter.displayName} (${maybeRedactAccountId(fields.reporter.accountId)})`
+    ? `${fields.reporter.displayName} (${maybeRedactAccountId(fields.reporter.accountId || fields.reporter.name || 'unknown')})`
     : 'Unknown';
 
   const labelsArray = Array.isArray(fields?.labels) ? fields.labels : [];
@@ -231,7 +231,7 @@ export function formatUsersResponse(users: JiraUser[]): McpToolResponse {
   const usersList = users
     .map(
       (user) =>
-        `• **${user.displayName}** (${maybeRedactAccountId(user.accountId)})\n  Email: ${maybeRedactEmail(user.emailAddress)} | Active: ${user.active ? 'Yes' : 'No'} | Type: ${user.accountType}`
+        `• **${user.displayName}** (${maybeRedactAccountId(user.accountId || user.name || 'unknown')})\n  Email: ${maybeRedactEmail(user.emailAddress)} | Active: ${user.active ? 'Yes' : 'No'}${user.accountType ? ` | Type: ${user.accountType}` : ''}`
     )
     .join('\n\n');
 
@@ -403,7 +403,7 @@ export function formatCommentsResponse(
 
 export function formatProjectDetailsResponse(project: JiraProjectDetails): McpToolResponse {
   const leadText = project.lead
-    ? `${project.lead.displayName} (${project.lead.accountId})`
+    ? `${project.lead.displayName} (${project.lead.accountId || project.lead.name || 'unknown'})`
     : 'No lead assigned';
 
   const componentsText =

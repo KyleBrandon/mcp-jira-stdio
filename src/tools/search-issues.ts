@@ -24,7 +24,12 @@ export const searchIssuesTool: Tool = {
       nextPageToken: {
         type: 'string',
         description:
-          'Token for pagination. Omit for first page, use value from previous response for next page.',
+          'Token for pagination (Cloud only). Omit for first page, use value from previous response for next page.',
+      },
+      startAt: {
+        type: 'number',
+        description: 'Start index for offset pagination (Data Center only).',
+        minimum: 0,
       },
       maxResults: {
         type: 'number',
@@ -60,6 +65,7 @@ export async function handleSearchIssues(input: unknown): Promise<McpToolRespons
     };
 
     if (validated.nextPageToken !== undefined) searchParams.nextPageToken = validated.nextPageToken;
+    if (validated.startAt !== undefined) searchParams.startAt = validated.startAt;
     if (validated.maxResults !== undefined) searchParams.maxResults = validated.maxResults;
     if (validated.fields !== undefined) searchParams.fields = validated.fields;
     if (validated.expand !== undefined) searchParams.expand = validated.expand;

@@ -121,7 +121,7 @@ describe('jira-auth', () => {
       );
     });
 
-    it('should set correct baseURL with API path', async () => {
+    it('should set correct baseURL with API v3 path for Cloud', async () => {
       const axios = (await import('axios')).default;
       const { getAuthenticatedClient } = await import('../../../src/utils/jira-auth.js');
 
@@ -130,6 +130,20 @@ describe('jira-auth', () => {
       expect(axios.create).toHaveBeenCalledWith(
         expect.objectContaining({
           baseURL: 'https://test.atlassian.net/rest/api/3',
+        })
+      );
+    });
+
+    it('should set correct baseURL with API v2 path for Data Center', async () => {
+      delete process.env.JIRA_EMAIL;
+      const axios = (await import('axios')).default;
+      const { getAuthenticatedClient } = await import('../../../src/utils/jira-auth.js');
+
+      getAuthenticatedClient();
+
+      expect(axios.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          baseURL: 'https://test.atlassian.net/rest/api/2',
         })
       );
     });
