@@ -1,114 +1,53 @@
 # MCP Jira Server
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0%2B-007ACC?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
-[![Node](https://img.shields.io/badge/Node.js-18%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org)
+[![Node](https://img.shields.io/badge/Node.js-20%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![npm version](https://badge.fury.io/js/mcp-jira-stdio.svg)](https://www.npmjs.com/package/mcp-jira-stdio)
-[![MCP Server](https://img.shields.io/badge/MCP-Server-blue)](https://glama.ai/mcp/servers)
+[![MCP Server](https://img.shields.io/badge/MCP-Server-blue)](https://modelcontextprotocol.io)
 
-[![CI](https://github.com/freema/mcp-jira-stdio/actions/workflows/ci.yml/badge.svg)](https://github.com/freema/mcp-jira-stdio/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/freema/mcp-jira-stdio/branch/main/graph/badge.svg)](https://codecov.io/gh/freema/mcp-jira-stdio)
-[![GitHub issues](https://img.shields.io/github/issues/freema/mcp-jira-stdio)](https://github.com/freema/mcp-jira-stdio/issues)
+A Model Context Protocol (MCP) server for Jira API integration. Enables reading, writing, and managing Jira issues and projects directly from your MCP client (e.g., Claude Code, Claude Desktop).
 
-<a href="https://glama.ai/mcp/servers/@freema/mcp-jira-stdio">
-  <img width="380" height="200" src="https://glama.ai/mcp/servers/@freema/mcp-jira-stdio/badge" />
-</a>
-
-A Model Context Protocol (MCP) server for Jira API integration. Enables reading, writing, and managing Jira issues and projects directly from your MCP client (e.g., Claude Desktop).
-
-## ⚡ Quick Install for Claude Code
-
-The fastest way to add this MCP server to Claude Code:
-
-**Atlassian Cloud:**
-
-```bash
-claude mcp add jira npx mcp-jira-stdio@latest \
-  --env JIRA_BASE_URL=https://yourcompany.atlassian.net \
-  --env JIRA_EMAIL=your-email@example.com \
-  --env JIRA_API_TOKEN=your-api-token \
-  --env JIRA_READ_ONLY=true
-```
-
-**Jira Data Center / Server:**
-
-```bash
-claude mcp add jira npx mcp-jira-stdio@latest \
-  --env JIRA_BASE_URL=https://jira.yourcompany.com \
-  --env JIRA_API_TOKEN=your-personal-access-token \
-  --env JIRA_READ_ONLY=true
-```
-
-Replace the values with your actual Jira credentials:
-- **JIRA_BASE_URL**: Your Jira instance URL (e.g., `https://yourcompany.atlassian.net`)
-- **JIRA_EMAIL**: Your Jira account email *(required for Cloud, omit for Data Center/Server)*
-- **JIRA_API_TOKEN**: API token ([Cloud](https://id.atlassian.com/manage-profile/security/api-tokens)) or Personal Access Token (Data Center/Server)
-- **JIRA_READ_ONLY**: Set to `false` to enable write operations (default: `true`)
-
-That's it! The server will be automatically configured and ready to use.
-
-### Alternative: Manual Configuration
-
-If you prefer to configure manually or use Claude Desktop, see the [Configuration](#6-configure-mcp-client) section below.
+> **Note:** This is a fork of [freema/mcp-jira-stdio](https://github.com/freema/mcp-jira-stdio) and is **not published to npm**. Install by cloning, building, and registering the local build with your MCP client.
 
 ## 🚀 Quick Start
 
 ### 1. Prerequisites
 
-- Node.js v18 or higher
-- Jira instance (Cloud or Server)
-- Jira API token
+- Node.js v20 or higher
+- Jira instance (Cloud or Data Center/Server)
+- Jira API token (Cloud) or Personal Access Token (Data Center/Server)
 
-### 2. Installation
-
-```bash
-# Install from npm
-npm install -g mcp-jira-stdio
-
-# Or install locally in your project
-npm install mcp-jira-stdio
-```
-
-#### Development Installation
+### 2. Clone and Build
 
 ```bash
 # Clone the repository
-git clone https://github.com/freema/mcp-jira-stdio.git
+git clone https://github.com/KyleBrandon/mcp-jira-stdio.git
 cd mcp-jira-stdio
 
 # Install dependencies
 npm install
-# or using Task runner
-task install
 
 # Build the project
 npm run build
-# or
-task build
 ```
+
+This produces `dist/index.js`, which your MCP client will run via Node.
 
 ### 3. Jira API Setup
 
-1. Go to your Jira instance settings
-2. Create an API token:
-   - **Jira Cloud**: Go to Account Settings → Security → Create and manage API tokens
-   - **Jira Server**: Use your username and password (or create an application password)
-3. Note your Jira base URL (e.g., `https://yourcompany.atlassian.net`)
+1. Note your Jira base URL (e.g., `https://yourcompany.atlassian.net` or `https://jira.yourcompany.com`).
+2. Create a token:
+   - **Jira Cloud:** Account Settings → Security → [Create and manage API tokens](https://id.atlassian.com/manage-profile/security/api-tokens)
+   - **Jira Data Center / Server:** Profile → Personal Access Tokens
 
-### 4. Configuration
+### 4. Configure Credentials
 
 Create a `.env` file from the provided example:
 
 ```bash
-# Copy the example environment file
 cp .env.example .env
-
 # Edit .env with your actual Jira credentials
-# Or use Task runner:
-task env
 ```
-
-Example `.env` contents:
 
 **Atlassian Cloud:**
 
@@ -116,6 +55,7 @@ Example `.env` contents:
 JIRA_BASE_URL=https://your-instance.atlassian.net
 JIRA_EMAIL=your-email@example.com
 JIRA_API_TOKEN=your-api-token
+JIRA_READ_ONLY=true
 ```
 
 **Jira Data Center / Server:**
@@ -123,30 +63,42 @@ JIRA_API_TOKEN=your-api-token
 ```env
 JIRA_BASE_URL=https://jira.yourcompany.com
 JIRA_API_TOKEN=your-personal-access-token
+JIRA_READ_ONLY=true
 ```
-
-**Note:** For Cloud, generate your API token at [https://id.atlassian.com/manage-profile/security/api-tokens](https://id.atlassian.com/manage-profile/security/api-tokens). For Data Center/Server, create a Personal Access Token from your Jira profile.
 
 ### 5. Test Connection
 
 ```bash
 # Test Jira connection
-task jira:test
-
-# List visible projects
-task jira:projects
+npm run test:connection
 ```
 
-### 6. Configure MCP Client
+### 6. Register with Your MCP Client
 
-#### For Claude Code
+#### For Claude Code (recommended: install script)
 
-Use the quick install command (recommended):
+The provided `install.sh` reads credentials from your `.env`, builds the project, and registers the MCP server with Claude Code in one step:
+
+```bash
+./install.sh
+```
+
+The script:
+
+- Reads `JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`, `JIRA_READ_ONLY`, and `LOG_LEVEL` from `.env`
+- Runs `npm run build`
+- Registers (or re-registers) the `jira` MCP server at user scope via `claude mcp add`
+
+Restart Claude Code to pick up the changes.
+
+#### For Claude Code (manual)
+
+If you prefer to register manually, point Claude Code at the built `dist/index.js`:
 
 **Atlassian Cloud:**
 
 ```bash
-claude mcp add jira npx mcp-jira-stdio@latest \
+claude mcp add jira --scope user node /absolute/path/to/mcp-jira-stdio/dist/index.js \
   --env JIRA_BASE_URL=https://yourcompany.atlassian.net \
   --env JIRA_EMAIL=your-email@example.com \
   --env JIRA_API_TOKEN=your-api-token \
@@ -156,30 +108,15 @@ claude mcp add jira npx mcp-jira-stdio@latest \
 **Jira Data Center / Server:**
 
 ```bash
-claude mcp add jira npx mcp-jira-stdio@latest \
+claude mcp add jira --scope user node /absolute/path/to/mcp-jira-stdio/dist/index.js \
   --env JIRA_BASE_URL=https://jira.yourcompany.com \
   --env JIRA_API_TOKEN=your-personal-access-token \
   --env JIRA_READ_ONLY=true
 ```
 
-#### For Claude Code (Development Install)
-
-If you have cloned the repo locally, use the provided install script. It reads credentials from your `.env` file, builds the project, and registers the MCP server with Claude Code in a single step:
-
-```bash
-cp .env.example .env
-# Edit .env with your credentials
-./install.sh
-```
-
-The script:
-- Reads `JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`, `JIRA_READ_ONLY`, and `LOG_LEVEL` from `.env`
-- Runs `npm run build`
-- Registers (or re-registers) the `jira` MCP server at user scope via `claude mcp add`
-
 #### For Claude Desktop
 
-Add to your Claude Desktop config:
+Add the server to your Claude Desktop config:
 
 - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
@@ -189,36 +126,37 @@ Add to your Claude Desktop config:
 {
   "mcpServers": {
     "jira": {
-      "command": "mcp-jira-stdio",
+      "command": "node",
+      "args": ["/absolute/path/to/mcp-jira-stdio/dist/index.js"],
       "env": {
         "JIRA_BASE_URL": "https://your-instance.atlassian.net",
         "JIRA_EMAIL": "your-email@example.com",
-        "JIRA_API_TOKEN": "your-api-token"
+        "JIRA_API_TOKEN": "your-api-token",
+        "JIRA_READ_ONLY": "true"
       }
     }
   }
 }
 ```
 
-#### Alternative: Using npx
+For Data Center/Server, omit `JIRA_EMAIL` and use a Personal Access Token for `JIRA_API_TOKEN`.
 
-```json
-{
-  "mcpServers": {
-    "jira": {
-      "command": "npx",
-      "args": ["mcp-jira-stdio"],
-      "env": {
-        "JIRA_BASE_URL": "https://your-instance.atlassian.net",
-        "JIRA_EMAIL": "your-email@example.com",
-        "JIRA_API_TOKEN": "your-api-token"
-      }
-    }
-  }
-}
+Restart Claude Desktop after editing the config.
+
+#### Interactive Claude Desktop setup
+
+A helper script can prompt for values and write the Claude Desktop config:
+
+```bash
+npm run setup:mcp
 ```
 
-Restart Claude Desktop after adding the configuration.
+The script will:
+
+- Build the project if needed and detect your Node path
+- Prompt for `JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`
+- Save a `jira` entry into your Claude Desktop config or print the JSON
+- Optionally generate a local `.env` for development
 
 ## 📦 Available Tools
 
@@ -259,27 +197,21 @@ Restart Claude Desktop after adding the configuration.
 ```bash
 # Development mode with hot reload
 npm run dev
-task dev
 
 # Build for production
 npm run build
-task build
 
 # Type checking
 npm run typecheck
-task typecheck
 
 # Linting
 npm run lint
-task lint
 
 # Format code
 npm run format
-task fmt
 
 # Run all checks
 npm run check
-task check
 ```
 
 ### MCP Inspector
@@ -289,16 +221,14 @@ Debug your MCP server using the inspector:
 ```bash
 # Run inspector (production build)
 npm run inspector
-task inspector
 
 # Run inspector (development mode)
 npm run inspector:dev
-task inspector:dev
 ```
 
 Notes:
 
-- Startup no longer blocks on Jira connectivity. If Jira env vars are missing, the server still starts and lists tools; tool calls will fail with a clear auth error until you set `JIRA_BASE_URL`, `JIRA_EMAIL`, and `JIRA_API_TOKEN`.
+- Startup no longer blocks on Jira connectivity. If Jira env vars are missing, the server still starts and lists tools; tool calls will fail with a clear auth error until you set `JIRA_BASE_URL`, `JIRA_API_TOKEN` (and `JIRA_EMAIL` for Cloud).
 - Connection testing runs only in development/test (`NODE_ENV=development` or `test`). Failures are logged but do not terminate the server, so the inspector can still display tools.
 
 ### Testing
@@ -306,15 +236,12 @@ Notes:
 ```bash
 # Run tests
 npm test
-task test
 
 # Run tests with coverage
 npm run test:coverage
-task test:coverage
 
 # Watch mode
 npm run test:watch
-task test:watch
 ```
 
 ## 📋 Project Structure
@@ -365,7 +292,7 @@ jira_get_visible_projects({
 **"Authentication failed"**
 
 - Verify your API token is correct
-- Check that your email matches your Jira account
+- For Cloud, check that your email matches your Jira account
 - Ensure your Jira base URL is correct (no trailing slash)
 
 **"Connection failed"**
@@ -382,38 +309,22 @@ jira_get_visible_projects({
 
 **MCP Connection Issues**
 
-- Ensure you're using the built version (`dist/index.js`)
-- Check that Node.js path is correct in Claude Desktop config
-- Look for errors in Claude Desktop logs
-- Use `task inspector` to debug
-
-**Timeout when running multiple instances with npx**
-
-If you're running multiple Claude Code sessions simultaneously and experience timeouts, this is caused by `npx` cache/registry locking — not the MCP server itself. Each instance tries to verify the package, causing conflicts. To fix this, install the package globally instead:
-
-```bash
-npm install -g mcp-jira-stdio
-claude mcp add jira mcp-jira-stdio \
-  --env JIRA_BASE_URL=... \
-  --env JIRA_EMAIL=... \
-  --env JIRA_API_TOKEN=...
-# Omit JIRA_EMAIL for Data Center/Server (Bearer token auth)
-```
+- Ensure you've run `npm run build` and the MCP client is pointed at `dist/index.js`
+- Check that the absolute path to `dist/index.js` is correct in your client config
+- Look for errors in the MCP client logs
+- Use `npm run inspector` to debug
 
 ### Debug Commands
 
 ```bash
 # Test Jira connection
-task jira:test
-
-# List projects (test API connectivity)
-task jira:projects
+npm run test:connection
 
 # Run MCP inspector for debugging
-task inspector:dev
+npm run inspector:dev
 
 # Check all configuration
-task check
+npm run check
 ```
 
 If the inspector shows an SSE error and the server exits immediately, ensure you are not forcing an early exit with invalid credentials. With the current behavior, the server should not exit on missing credentials; export your Jira vars to exercise the tools:
@@ -427,20 +338,20 @@ npm run inspector
 
 ## 🔍 Environment Variables
 
-| Variable         | Required | Default        | Description                                                                                             | Example                         |
-| ---------------- | -------- | -------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------- |
-| `JIRA_BASE_URL`  | Yes        | —              | Jira instance URL (no trailing slash)                                                                                      | `https://company.atlassian.net` |
-| `JIRA_EMAIL`     | Cloud only | —              | Jira account email. When set, enables Basic Auth (Cloud). Omit for Data Center/Server (Bearer token).                      | `user@example.com`              |
-| `JIRA_API_TOKEN` | Yes        | —              | API token ([Cloud](https://id.atlassian.com/manage-profile/security/api-tokens)) or Personal Access Token (Data Center)    | `ATxxx...`                      |
-| `JIRA_READ_ONLY` | No       | `true`         | When `true`, write tools (create, update, delete, comment, transition) are hidden from the MCP tool list | `true` or `false`               |
-| `NODE_ENV`       | No       | `production`   | Set to `development` to enable connection testing and debug messages                                     | `development` or `production`   |
-| `LOG_LEVEL`      | No       | `info`         | Log verbosity (`debug` in development mode)                                                             | `debug`, `info`, `warn`         |
+| Variable         | Required   | Default      | Description                                                                                                             | Example                         |
+| ---------------- | ---------- | ------------ | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| `JIRA_BASE_URL`  | Yes        | —            | Jira instance URL (no trailing slash)                                                                                   | `https://company.atlassian.net` |
+| `JIRA_EMAIL`     | Cloud only | —            | Jira account email. When set, enables Basic Auth (Cloud). Omit for Data Center/Server (Bearer token).                   | `user@example.com`              |
+| `JIRA_API_TOKEN` | Yes        | —            | API token ([Cloud](https://id.atlassian.com/manage-profile/security/api-tokens)) or Personal Access Token (Data Center) | `ATxxx...`                      |
+| `JIRA_READ_ONLY` | No         | `true`       | When `true`, write tools (create, update, delete, comment, transition) are hidden from the MCP tool list                | `true` or `false`               |
+| `NODE_ENV`       | No         | `production` | Set to `development` to enable connection testing and debug messages                                                    | `development` or `production`   |
+| `LOG_LEVEL`      | No         | `info`       | Log verbosity (`debug` in development mode)                                                                             | `debug`, `info`, `warn`         |
 
 ## 🤝 Contributing
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Run tests and linting (`task check`)
+3. Run tests and linting (`npm run check`)
 4. Commit your changes (`git commit -m 'Add some amazing feature'`)
 5. Push to the branch (`git push origin feature/amazing-feature`)
 6. Open a Pull Request
@@ -448,18 +359,3 @@ npm run inspector
 ## 📄 License
 
 This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
-
-### MCP Config Setup
-
-Configure Claude Desktop to use this MCP server interactively:
-
-```bash
-npm run setup:mcp
-```
-
-The script will:
-
-- Build the project if needed and detect your Node path
-- Prompt for `JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`
-- Save a `jira` entry into your Claude Desktop config or print the JSON
-- Optionally generate a local `.env` for development
