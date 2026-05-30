@@ -244,9 +244,7 @@ async function main() {
 
   // Show auth info on startup when configured (skip in DRY_RUN)
   if (!isDryRun) {
-    const hasAuthVars = Boolean(
-      process.env.JIRA_BASE_URL && process.env.JIRA_API_TOKEN
-    );
+    const hasAuthVars = Boolean(process.env.JIRA_BASE_URL && process.env.JIRA_API_TOKEN);
 
     if (hasAuthVars) {
       try {

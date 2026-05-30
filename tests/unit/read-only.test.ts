@@ -121,9 +121,7 @@ describe('read-only mode', () => {
     });
 
     it('should remove write tool handlers when read-only', () => {
-      const handlers = new Map<string, () => void>(
-        allTools.map((t) => [t.name, vi.fn()])
-      );
+      const handlers = new Map<string, () => void>(allTools.map((t) => [t.name, vi.fn()]));
 
       for (const name of WRITE_TOOL_NAMES) {
         handlers.delete(name);

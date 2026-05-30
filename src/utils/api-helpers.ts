@@ -199,10 +199,7 @@ function ensureAdfDescription(desc: any, format: 'markdown' | 'adf' | 'plain' = 
 }
 
 // Wrapper: returns ADF for Cloud (v3), plain text for Data Center (v2)
-function formatDescription(
-  desc: any,
-  format: 'markdown' | 'adf' | 'plain' = 'markdown'
-): any {
+function formatDescription(desc: any, format: 'markdown' | 'adf' | 'plain' = 'markdown'): any {
   if (!desc) return desc;
 
   if (!isCloud()) {
@@ -398,10 +395,7 @@ export async function createIssue(
   };
 
   if (issueData.description !== undefined) {
-    fields.description = formatDescription(
-      issueData.description,
-      issueData.format || 'markdown'
-    );
+    fields.description = formatDescription(issueData.description, issueData.format || 'markdown');
   }
 
   if (issueData.priority) {
